@@ -1,0 +1,1656 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ALIENS CLICKER</title>
+<style>
+  :root {
+    --primary: #0f0;
+    --primary-bright: #3f3;
+    --primary-rgb: 0, 255, 0;
+    --secondary: #0a0;
+    --tertiary: #060;
+    --dim: #030;
+    --border-color: #050;
+    --bg-dark: #050505;
+    --bg-rgb: 0, 5, 0;
+    --panel-bg: #0f3460;
+    --body-bg: #1a1a2e;
+  }
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg-dark);
+    overflow: hidden;
+    font-family: 'Share Tech Mono', 'Courier New', monospace;
+    user-select: none;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  canvas {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+  }
+
+  .hud {
+    position: fixed;
+    z-index: 10;
+    pointer-events: none;
+  }
+
+  .top-bar {
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .coin-display {
+    font-size: 28px;
+    color: var(--primary);
+    text-shadow: 0 0 12px rgba(var(--primary-rgb),0.5);
+    letter-spacing: 2px;
+    pointer-events: none;
+  }
+  .coin-display .sym { opacity: 0.5; font-size: 16px; }
+  .cps {
+    font-size: 12px;
+    color: var(--secondary);
+    text-shadow: 0 0 6px rgba(var(--primary-rgb),0.3);
+    pointer-events: none;
+  }
+  .pc {
+    font-size: 11px;
+    color: var(--tertiary);
+    pointer-events: none;
+  }
+
+  .toggle-btn {
+    position: fixed;
+    right: 16px;
+    top: 16px;
+    z-index: 20;
+    background: #0a0a0a;
+    border: 1px solid var(--primary);
+    color: var(--primary);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    padding: 8px 16px;
+    cursor: pointer;
+    letter-spacing: 2px;
+    transition: all 0.2s;
+    box-shadow: 0 0 8px rgba(var(--primary-rgb),0.1);
+  }
+  .toggle-btn:hover {
+    background: #0a0a0a;
+    box-shadow: 0 0 16px rgba(var(--primary-rgb),0.25);
+  }
+  .toggle-left {
+    left: 16px;
+    right: auto;
+  }
+  .pwr-panel {
+    left: 16px;
+    right: auto;
+    width: 260px;
+  }
+
+  .pwr-subheader {
+    font-size: 11px;
+    color: var(--secondary);
+    letter-spacing: 2px;
+    margin: 8px 0 8px 0;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--tertiary);
+  }
+  .pwr-subheader::before { content: '[ '; }
+  .pwr-subheader::after { content: ' ]'; }
+
+  .settings-btn {
+    position: fixed;
+    bottom: 16px;
+    left: 16px;
+    z-index: 20;
+    background: #0a0a0a;
+    border: 1px solid var(--primary);
+    color: var(--primary);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 18px;
+    padding: 6px 14px;
+    cursor: pointer;
+    letter-spacing: 2px;
+    transition: all 0.2s;
+    box-shadow: 0 0 8px rgba(var(--primary-rgb),0.1);
+  }
+  .settings-btn:hover {
+    background: #0a0a0a;
+    box-shadow: 0 0 16px rgba(var(--primary-rgb),0.25);
+  }
+
+  .settings-panel {
+    position: fixed;
+    bottom: 60px;
+    left: 16px;
+    right: auto;
+    z-index: 20;
+    background: #0a0a0a;
+    border: 1px solid var(--primary);
+    padding: 16px;
+    min-width: 200px;
+    box-shadow: 0 0 15px rgba(var(--primary-rgb),0.1), inset 0 0 20px rgba(var(--primary-rgb),0.02);
+    display: none;
+  }
+  .settings-panel.open { display: block; }
+
+  .settings-btn-full {
+    width: 100%;
+    margin-bottom: 6px;
+    display: block;
+    padding: 6px 12px;
+  }
+
+  .upgrade-panel {
+    position: fixed;
+    right: 16px;
+    top: 56px;
+    z-index: 20;
+    background: #0a0a0a;
+    border: 1px solid var(--primary);
+    padding: 16px;
+    min-width: 260px;
+    box-shadow: 0 0 15px rgba(var(--primary-rgb),0.1), inset 0 0 20px rgba(var(--primary-rgb),0.02);
+    display: none;
+  }
+  .upgrade-panel.open { display: block; }
+
+  .panel-title {
+    font-size: 13px;
+    color: var(--primary);
+    letter-spacing: 3px;
+    margin-bottom: 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--primary);
+  }
+  .panel-title::before { content: '[ '; }
+  .panel-title::after { content: ' ]'; }
+
+  .upgrade-item {
+    border: 1px solid var(--secondary);
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    background: #0a0a0a;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .upgrade-item.can-buy {
+    border-color: var(--primary);
+    box-shadow: 0 0 6px rgba(var(--primary-rgb),0.1);
+  }
+  .upgrade-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .upgrade-name {
+    font-size: 12px;
+    color: var(--primary);
+    letter-spacing: 1px;
+  }
+  .upgrade-lv { font-size: 10px; color: var(--secondary); }
+  .upgrade-desc {
+    font-size: 10px;
+    color: var(--tertiary);
+    margin: 3px 0 8px 0;
+  }
+  .upgrade-cost {
+    font-size: 11px;
+    color: var(--primary);
+  }
+  .upgrade-cost::before { content: '> '; opacity: 0.4; }
+  .buy-btn {
+    font-family: 'Share Tech Mono', monospace;
+    background: transparent;
+    color: var(--primary);
+    border: 1px solid var(--primary);
+    padding: 3px 12px;
+    font-size: 10px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: all 0.15s;
+  }
+  .buy-btn:hover {
+    background: rgba(var(--primary-rgb),0.08);
+    box-shadow: 0 0 8px rgba(var(--primary-rgb),0.15);
+  }
+  .buy-btn:disabled {
+    border-color: #333;
+    color: #555;
+    cursor: not-allowed;
+  }
+  .buy-btn:disabled:hover { background: transparent; box-shadow: none; }
+
+  .play-btn {
+    position: fixed;
+    left: 50%;
+    top: 140px;
+    transform: translateX(-50%);
+    z-index: 30;
+    font-family: 'Share Tech Mono', monospace;
+    background: #0a0a0a;
+    border: 1px solid var(--primary);
+    color: var(--primary);
+    font-size: 20px;
+    letter-spacing: 6px;
+    padding: 14px 48px;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 0 15px rgba(var(--primary-rgb),0.2);
+    text-shadow: 0 0 8px rgba(var(--primary-rgb),0.5);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  .play-btn:hover {
+    background: #0a0a0a;
+    box-shadow: 0 0 35px rgba(var(--primary-rgb),0.5);
+    border-color: var(--primary-bright);
+    color: var(--primary-bright);
+  }
+  .level-btn {
+    transform: translateX(-50%);
+    position: fixed;
+    z-index: 30;
+    font-size: 14px;
+    letter-spacing: 2px;
+    padding: 10px 24px;
+    min-width: 260px;
+  }
+
+@keyframes pulse {
+    0%, 100% { box-shadow: 0 0 15px rgba(var(--primary-rgb),0.2); }
+    50% { box-shadow: 0 0 40px rgba(var(--primary-rgb),0.5); }
+  }
+
+  .crt-overlay {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 50;
+    background: repeating-linear-gradient(
+      0deg,
+      rgba(0,0,0,0.06) 0px,
+      rgba(0,0,0,0.06) 2px,
+      transparent 2px,
+      transparent 4px
+    );
+  }
+  .noise-overlay {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 51;
+    opacity: 0.02;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .float-credit {
+    position: fixed;
+    pointer-events: none;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 16px;
+    color: var(--primary);
+    text-shadow: 0 0 8px rgba(var(--primary-rgb),0.6);
+    z-index: 40;
+    animation: floatUp 0.7s ease-out forwards;
+  }
+  @keyframes floatUp {
+    0% { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(-50px); }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="game"></canvas>
+
+<button class="play-btn" id="playBtn" onclick="goToLevels()">[ PLAY ]</button>
+
+<div class="hud top-bar" id="gameHUD" style="display:none;">
+  <span style="font-size:13px;color:var(--secondary);" id="phaseLabel">PHASE 1</span>
+  <span style="font-size:11px;color:var(--tertiary);" id="nextPhaseLabel">next:30</span>
+  <span class="coin-display"><span class="sym">PT</span> <span id="coinDisplay">0</span></span>
+  <span class="cps" id="coinsPerSec">0.0/s</span>
+  <span class="pc" id="perClick">dmg:+1</span>
+  <span class="pc" id="killLabel">kills:0</span>
+</div>
+
+<button class="toggle-btn" id="toggleBtn" onclick="togglePanel()" style="display:none;">[ + ]</button>
+
+<div class="upgrade-panel" id="upgradePanel">
+  <div class="panel-title">UPGRADES</div>
+
+  <div class="pwr-subheader">CLICK</div>
+
+  <div class="upgrade-item" id="uiClickPower">
+    <div class="upgrade-row">
+      <span class="upgrade-name">DAMAGE</span>
+      <span class="upgrade-lv" id="cpLevel">Lv.0</span>
+    </div>
+    <div class="upgrade-desc" id="cpEffect">+0 dmg per hit</div>
+    <div class="upgrade-row">
+      <span class="upgrade-cost" id="cpCost">$50</span>
+      <button class="buy-btn" id="cpBuy" onclick="buy('clickPower')">BUY</button>
+    </div>
+  </div>
+
+  <div class="pwr-subheader">TURRET</div>
+
+  <div class="upgrade-item" id="uiTurretCount">
+    <div class="upgrade-row">
+      <span class="upgrade-name">TURRET_COUNT</span>
+      <span class="upgrade-lv" id="tcnLevel">Lv.0</span>
+    </div>
+    <div class="upgrade-desc" id="tcnEffect">0 turrets</div>
+    <div class="upgrade-row">
+      <span class="upgrade-cost" id="tcnCost">$200</span>
+      <button class="buy-btn" id="tcnBuy" onclick="buy('turretCount')">BUY</button>
+    </div>
+  </div>
+
+  <div class="upgrade-item" id="uiTurretDmg">
+    <div class="upgrade-row">
+      <span class="upgrade-name">SENTRY_DMG</span>
+      <span class="upgrade-lv" id="tdLevel">Lv.0</span>
+    </div>
+    <div class="upgrade-desc" id="tdEffect">1 dmg per shot</div>
+    <div class="upgrade-row">
+      <span class="upgrade-cost" id="tdCost">$50</span>
+      <button class="buy-btn" id="tdBuy" onclick="buy('turretDmg')">BUY</button>
+    </div>
+  </div>
+
+  <div class="upgrade-item" id="uiTurretShots">
+    <div class="upgrade-row">
+      <span class="upgrade-name">SENTRY_SHOTS</span>
+      <span class="upgrade-lv" id="tsLevel">Lv.0</span>
+    </div>
+    <div class="upgrade-desc" id="tsEffect">1 shots / volley</div>
+    <div class="upgrade-row">
+      <span class="upgrade-cost" id="tsCost">$200</span>
+      <button class="buy-btn" id="tsBuy" onclick="buy('turretShots')">BUY</button>
+    </div>
+  </div>
+
+  <div class="upgrade-item" id="uiTurretClock">
+    <div class="upgrade-row">
+      <span class="upgrade-name">SENTRY_CLOCK</span>
+      <span class="upgrade-lv" id="tcLevel">Lv.0</span>
+    </div>
+    <div class="upgrade-desc" id="tcEffect">interval: 3000ms</div>
+    <div class="upgrade-row">
+      <span class="upgrade-cost" id="tcCost">$400</span>
+      <button class="buy-btn" id="tcBuy" onclick="buy('turretClock')">BUY</button>
+    </div>
+  </div>
+
+  <div class="upgrade-item" id="uiPrestige" style="display:none;">
+    <div class="upgrade-row">
+      <span class="upgrade-name">PRESTIGE</span>
+    </div>
+    <div class="upgrade-desc">Reset level \u00b7 +difficulty \u00b7 new palette</div>
+    <div class="upgrade-row">
+      <span class="upgrade-cost">cost: all PT</span>
+      <button class="buy-btn" id="prBuy" onclick="buy('prestige')">PRESTIGE</button>
+    </div>
+  </div>
+
+  <div class="pwr-subheader">POINTS</div>
+
+  <div class="upgrade-item" id="uiTechBoost">
+    <div class="upgrade-row">
+      <span class="upgrade-name">TECH_BOOST</span>
+      <span class="upgrade-lv" id="tbLevel">Lv.0</span>
+    </div>
+    <div class="upgrade-desc" id="tbEffect">x1 pts per kill</div>
+    <div class="upgrade-row">
+      <span class="upgrade-cost" id="tbCost">$1000</span>
+      <button class="buy-btn" id="tbBuy" onclick="buy('techBoost')">BUY</button>
+    </div>
+  </div>
+</div>
+
+<button class="toggle-btn toggle-left" id="pwrToggleBtn" onclick="togglePwrPanel()" style="display:none;">[ < ]</button>
+
+<div class="upgrade-panel pwr-panel" id="pwrPanel">
+  <div class="panel-title">POWER-UPS</div>
+
+  <div class="pwr-subheader">CLICK</div>
+
+  <div class="upgrade-item" id="uiClickPwr">
+    <div class="upgrade-row">
+      <span class="upgrade-name">CLICK x4</span>
+    </div>
+    <div class="upgrade-desc">x4 dmg · 30s · cd 60s</div>
+    <div class="upgrade-row">
+      <span class="upgrade-cost" id="cpwrCost">20 kills</span>
+      <button class="buy-btn" id="cpwrBtn" onclick="usePowerUp('click')">BUY</button>
+    </div>
+  </div>
+
+  <div class="upgrade-item" id="uiSplashPwr">
+    <div class="upgrade-row">
+      <span class="upgrade-name">SPLASH</span>
+    </div>
+    <div class="upgrade-desc">dmg all · 10s · cd 2m</div>
+    <div class="upgrade-row">
+      <span class="upgrade-cost" id="spCost">500 kills</span>
+      <button class="buy-btn" id="spBtn" onclick="usePowerUp('splash')">BUY</button>
+    </div>
+  </div>
+
+  <div class="upgrade-item" id="uiBountyPwr">
+    <div class="upgrade-row">
+      <span class="upgrade-name">BOUNTY</span>
+    </div>
+    <div class="upgrade-desc">x5 pts · 15s · cd 3m</div>
+    <div class="upgrade-row">
+      <span class="upgrade-cost" id="bpCost">500 kills</span>
+      <button class="buy-btn" id="bpBtn" onclick="usePowerUp('bounty')">BUY</button>
+    </div>
+  </div>
+
+  <div class="pwr-subheader">TURRET</div>
+
+  <div class="upgrade-item" id="uiTurretPwr">
+    <div class="upgrade-row">
+      <span class="upgrade-name">SENTRY x4</span>
+    </div>
+    <div class="upgrade-desc">x4 dmg · 30s · cd 2m</div>
+    <div class="upgrade-row">
+      <span class="upgrade-cost" id="tpwrCost">100 kills</span>
+      <button class="buy-btn" id="tpwrBtn" onclick="usePowerUp('turret')">BUY</button>
+    </div>
+  </div>
+
+  <div class="upgrade-item" id="uiRapidFirePwr">
+    <div class="upgrade-row">
+      <span class="upgrade-name">RAPID_FIRE</span>
+    </div>
+    <div class="upgrade-desc">500ms interval · 10s · cd 2m</div>
+    <div class="upgrade-row">
+      <span class="upgrade-cost" id="rfCost">500 kills</span>
+      <button class="buy-btn" id="rfBtn" onclick="usePowerUp('rapidfire')">BUY</button>
+    </div>
+  </div>
+
+  <div class="upgrade-item" id="uiVolleyPwr">
+    <div class="upgrade-row">
+      <span class="upgrade-name">VOLLEY</span>
+    </div>
+    <div class="upgrade-desc">+3 shots/turret · 20s · cd 2m</div>
+    <div class="upgrade-row">
+      <span class="upgrade-cost" id="vpCost">500 kills</span>
+      <button class="buy-btn" id="vpBtn" onclick="usePowerUp('volley')">BUY</button>
+    </div>
+  </div>
+</div>
+
+<button class="settings-btn" id="settingsBtn" onclick="toggleSettings()" style="display:none;">[*]</button>
+
+<div class="settings-panel" id="settingsPanel">
+  <div class="panel-title">SETTINGS</div>
+  <div style="text-align:center;">
+    <button class="buy-btn settings-btn-full" onclick="resumeGame()">RESUME</button>
+    <button class="buy-btn settings-btn-full" onclick="resetGame()">RESET</button>
+    <button class="buy-btn settings-btn-full" onclick="goToTitle()">TITLE</button>
+  </div>
+</div>
+
+<button class="play-btn level-btn" id="lvlBtn1" onclick="selectLevel(1)" style="display:none;">[ LEVEL 1 ]</button>
+<button class="play-btn level-btn" id="lvlBtn2" onclick="selectLevel(2)" style="display:none;">[ LEVEL 2 ]</button>
+<button class="play-btn level-btn" id="lvlBtn3" onclick="selectLevel(3)" style="display:none;">[ LEVEL 3 ]</button>
+<button class="play-btn level-btn" id="lvlBtn4" onclick="selectLevel(4)" style="display:none;">[ LEVEL 4 ]</button>
+<button class="play-btn level-btn" id="lvlBtn5" onclick="selectLevel(5)" style="display:none;">[ LEVEL 5 ]</button>
+<button class="play-btn level-btn" id="lvlBackBtn" onclick="screen='title';for(let i=1;i<=5;i++)document.getElementById('lvlBtn'+i).style.display='none';this.style.display='none';document.getElementById('playBtn').style.display='block';" style="display:none;">[ BACK ]</button>
+
+<div class="crt-overlay"></div>
+<div class="noise-overlay"></div>
+
+<script>
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  let W, H;
+
+  function resize() {
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  const palettes = [
+    { name: 'MATRIX',  primary: '#0f0', secondary: '#0a0', tertiary: '#060', bg: '#050505', dim: '#030', border: '#050' },
+    { name: 'AMBER',   primary: '#ffb000', secondary: '#cc8800', tertiary: '#997000', bg: '#0a0500', dim: '#050300', border: '#664000' },
+    { name: 'FROST',   primary: '#00ffff', secondary: '#00aaaa', tertiary: '#007777', bg: '#000a0a', dim: '#001010', border: '#003030' },
+    { name: 'VOID',    primary: '#c020ff', secondary: '#8010cc', tertiary: '#500880', bg: '#05000a', dim: '#020005', border: '#300050' },
+    { name: 'CRIMSON', primary: '#ff2020', secondary: '#cc1010', tertiary: '#990000', bg: '#0a0000', dim: '#050000', border: '#500000' },
+    { name: 'ZENITH',  primary: '#ffffff', secondary: '#aaaaaa', tertiary: '#777777', bg: '#0a0a0a', dim: '#050505', border: '#333333' },
+  ];
+  let palette = palettes[0];
+
+  function setPalette(prestige) {
+    palette = palettes[Math.min(prestige, 5)];
+    const p = palette;
+    const root = document.documentElement;
+    root.style.setProperty('--primary', p.primary);
+    root.style.setProperty('--secondary', p.secondary);
+    root.style.setProperty('--tertiary', p.tertiary);
+    root.style.setProperty('--dim', p.dim);
+    root.style.setProperty('--border-color', p.border);
+    root.style.setProperty('--primary-rgb', hexToRgb(p.primary));
+    root.style.setProperty('--primary-bright', p.secondary);
+  }
+
+  function hexToRgb(hex) {
+    const r = parseInt(hex.slice(1,3), 16);
+    const g = parseInt(hex.slice(3,5), 16);
+    const b = parseInt(hex.slice(5,7), 16);
+    return r + ', ' + g + ', ' + b;
+  }
+
+  function darkenHex(hex, factor) {
+    const r = Math.floor(parseInt(hex.slice(1,3), 16) * factor);
+    const g = Math.floor(parseInt(hex.slice(3,5), 16) * factor);
+    const b = Math.floor(parseInt(hex.slice(5,7), 16) * factor);
+    return '#' + [r,g,b].map(v => v.toString(16).padStart(2,'0')).join('');
+  }
+
+
+
+  let screen = 'title';
+  let titleImg = new Image();
+  titleImg.src = 'bitmap.png';
+  let titleLoaded = false;
+  titleImg.onload = () => { titleLoaded = true; };
+
+  let bgImg = new Image();
+  bgImg.src = 'ejemplo 2.png';
+  let bgLoaded = false;
+  bgImg.onload = () => { bgLoaded = true; };
+
+  let turretImg = new Image();
+  turretImg.src = 'torreta.png';
+  function drawTitleScreen() {
+    ctx.fillStyle = palette.bg;
+    ctx.fillRect(0, 0, W, H);
+
+    if (!titleLoaded) {
+      ctx.fillStyle = palette.primary;
+      ctx.font = '16px "Share Tech Mono", monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('LOADING...', W / 2, H / 2);
+      document.getElementById('playBtn').style.display = 'block';
+      return;
+    }
+
+    const iw = titleImg.naturalWidth;
+    const ih = titleImg.naturalHeight;
+    ctx.drawImage(titleImg, 0, 0, iw, ih, 0, 0, W, H);
+
+    ctx.fillStyle = palette.primary;
+    ctx.font = 'bold 48px "Share Tech Mono", monospace';
+    ctx.textAlign = 'center';
+    ctx.shadowColor = palette.primary;
+    ctx.shadowBlur = 20;
+    ctx.fillText('ALIENS CLICKER', W / 2, 100);
+    ctx.shadowBlur = 0;
+
+    document.getElementById('playBtn').style.display = 'block';
+  }
+
+  function goToLevels() {
+    screen = 'levels';
+    setPalette(0);
+    document.getElementById('playBtn').style.display = 'none';
+    document.getElementById('gameHUD').style.display = 'none';
+    document.getElementById('toggleBtn').style.display = 'none';
+    document.getElementById('pwrToggleBtn').style.display = 'none';
+    document.getElementById('settingsBtn').style.display = 'none';
+  }
+
+  function selectLevel(n) {
+    if (!globalState.levelUnlocked[n-1]) return;
+    state.currentLevel = n;
+    state.prestige = globalState.levelPrestige[n-1];
+    setPalette(state.prestige);
+    resetState();
+    load();
+    screen = 'game';
+    document.getElementById('gameHUD').style.display = 'flex';
+    document.getElementById('toggleBtn').style.display = 'block';
+    document.getElementById('pwrToggleBtn').style.display = 'block';
+    document.getElementById('settingsBtn').style.display = 'block';
+    for (let i = 1; i <= 5; i++) document.getElementById('lvlBtn' + i).style.display = 'none';
+    document.getElementById('lvlBackBtn').style.display = 'none';
+    uiDirty = true;
+    updateUI();
+  }
+
+  function resetState() {
+    state.coins = 0;
+    state.clickPower = 1;
+    state.totalKills = 0;
+    state.kills = 0;
+    state.turretDmg = 1;
+    state.turretShots = 1;
+    state.turretInterval = 3000;
+    state.turretCount = 0;
+    state.clickMult = 1;
+    state.turretMult = 1;
+    state.clickOwned = false;
+    state.turretOwned = false;
+    state.clickBuffEnd = 0;
+    state.turretBuffEnd = 0;
+    state.clickCooldownEnd = 0;
+    state.turretCooldownEnd = 0;
+    state.splashOwned = false;
+    state.splashActive = false;
+    state.splashBuffEnd = 0;
+    state.splashCooldownEnd = 0;
+    state.bountyOwned = false;
+    state.bountyMult = 1;
+    state.bountyBuffEnd = 0;
+    state.bountyCooldownEnd = 0;
+    state.rapidFireOwned = false;
+    state.rapidFireActive = false;
+    state.rapidFireBuffEnd = 0;
+    state.rapidFireCooldownEnd = 0;
+    state.savedTurretInterval = 3000;
+    state.volleyOwned = false;
+    state.volleyActive = false;
+    state.volleyBuffEnd = 0;
+    state.volleyCooldownEnd = 0;
+    state.coinMult = 1;
+    state.levels = { clickPower: 0, turretDmg: 0, turretShots: 0, turretClock: 0, turretCount: 0, techBoost: 0 };
+    aliens.length = 0;
+    bullets.length = 0;
+    particles.length = 0;
+    pendingBullets.length = 0;
+    for (let i = 0; i < getMaxAliens(); i++) aliens.push(spawnAlien());
+  }
+
+  function levelComplete() {
+    if (globalState.levelCompleted[state.currentLevel - 1]) return;
+    globalState.levelCompleted[state.currentLevel - 1] = true;
+    if (state.currentLevel < 5) {
+      globalState.levelUnlocked[state.currentLevel] = true;
+    }
+    saveGlobal();
+  }
+
+  function prestigeNow() {
+    if (!confirm('Prestige: reset all progress in this level and increase difficulty?')) return;
+    globalState.levelPrestige[state.currentLevel - 1]++;
+    if (globalState.levelPrestige[state.currentLevel - 1] > 5) {
+      globalState.levelPrestige[state.currentLevel - 1] = 5;
+    }
+    localStorage.removeItem('clicker_level_' + state.currentLevel);
+    saveGlobal();
+    state.prestige = globalState.levelPrestige[state.currentLevel - 1];
+    resetState();
+    setPalette(state.prestige);
+    uiDirty = true;
+    updateUI();
+  }
+
+  function drawLevelsScreen() {
+    ctx.fillStyle = palette.bg;
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.fillStyle = palette.primary;
+    ctx.font = 'bold 36px "Share Tech Mono", monospace';
+    ctx.textAlign = 'center';
+    ctx.shadowColor = palette.primary;
+    ctx.shadowBlur = 12;
+    ctx.fillText('SELECT MISSION', W / 2, 80);
+    ctx.shadowBlur = 0;
+
+    for (let i = 0; i < 5; i++) {
+      const btn = document.getElementById('lvlBtn' + (i+1));
+      btn.style.display = 'block';
+      btn.style.left = (W / 2) + 'px';
+      btn.style.top = (150 + i * 70) + 'px';
+      if (globalState.levelUnlocked[i]) {
+        const p = globalState.levelPrestige[i];
+        const pname = palettes[Math.min(p, 5)].name;
+        const done = globalState.levelCompleted[i] ? ' \u2713' : '';
+        btn.textContent = '[ LEVEL ' + (i+1) + done + ' ] P' + p + ' \u00b7 ' + pname;
+        btn.disabled = false;
+        btn.style.opacity = '1';
+      } else {
+        btn.textContent = '[ LOCKED ]';
+        btn.disabled = true;
+        btn.style.opacity = '0.4';
+      }
+    }
+    const backBtn = document.getElementById('lvlBackBtn');
+    backBtn.style.display = 'block';
+    backBtn.style.left = (W / 2) + 'px';
+    backBtn.style.top = (150 + 5 * 70 + 20) + 'px';
+  }
+
+  const state = {
+    currentLevel: 1,
+    prestige: 0,
+    coins: 0,
+    clickPower: 1,
+    totalKills: 0,
+    kills: 0,
+    turretDmg: 1,
+    turretShots: 1,
+    turretInterval: 3000,
+    turretCount: 0,
+    clickMult: 1,
+    turretMult: 1,
+    clickOwned: false,
+    turretOwned: false,
+    clickBuffEnd: 0,
+    turretBuffEnd: 0,
+    clickCooldownEnd: 0,
+    turretCooldownEnd: 0,
+    splashOwned: false,
+    splashActive: false,
+    splashBuffEnd: 0,
+    splashCooldownEnd: 0,
+    bountyOwned: false,
+    bountyMult: 1,
+    bountyBuffEnd: 0,
+    bountyCooldownEnd: 0,
+    rapidFireOwned: false,
+    rapidFireActive: false,
+    rapidFireBuffEnd: 0,
+    rapidFireCooldownEnd: 0,
+    savedTurretInterval: 3000,
+    volleyOwned: false,
+    volleyActive: false,
+    volleyBuffEnd: 0,
+    volleyCooldownEnd: 0,
+    coinMult: 1,
+    levels: { clickPower: 0, turretDmg: 0, turretShots: 0, turretClock: 0, turretCount: 0, techBoost: 0 },
+    costs: { clickPower: 50, turretDmg: 50, turretShots: 200, turretClock: 400, turretCount: 200, techBoost: 1000 },
+    costMult: { clickPower: 1.8, turretDmg: 1.8, turretShots: 2.0, turretClock: 2.2, turretCount: 2.5, techBoost: 2.0 }
+  };
+
+  const globalState = {
+    levelUnlocked: [true, false, false, false, false],
+    levelPrestige: [0, 0, 0, 0, 0],
+    levelCompleted: [false, false, false, false, false],
+  };
+
+  const aliens = [];
+  const bullets = [];
+  const particles = [];
+  const ALIEN_SIZE = 100;
+
+  const alienSets = [
+    ['alien hombre.png', 'alien mujer.png'],
+    ['alien hombre P1.png', 'alien mujer P1.png'],
+    ['alien hombre P2.png', 'alien mujer P2.png'],
+    ['alien hombre P3.png', 'alien mujer p3.png'],
+    ['alien hombre P4.png', 'alien mujer P4.png'],
+    ['alien hombre P5.png', 'alien mujer P5.png'],
+  ];
+
+  const alienImages = [[], [], [], [], [], []];
+  const loadedImgCache = {};
+
+  for (let p = 0; p < 6; p++) {
+    for (const file of alienSets[p]) {
+      if (!loadedImgCache[file]) {
+        const img = new Image();
+        img.src = file;
+        loadedImgCache[file] = img;
+      }
+      alienImages[p].push(loadedImgCache[file]);
+    }
+  }
+
+  function getAvailableAliens() {
+    const set = alienImages[Math.min(state.prestige, 5)];
+    return set.filter(img => img.complete && img.naturalWidth > 0);
+  }
+
+  function drawAlien(ax, ay, a) {
+    ctx.drawImage(a.img, ax, ay, a.w, a.h);
+  }
+
+  function getMaxAliens() {
+    const p = getPhase();
+    if (p <= 1) return 5;
+    return Math.min(5 + (p - 1), 15);
+  }
+
+  function syncAliens() {
+    const alive = aliens.filter(a => a.alive).length;
+    const target = getMaxAliens();
+    const need = target - alive;
+    for (let i = 0; i < need; i++) aliens.push(spawnAlien());
+  }
+
+  function getPhase() {
+    if (state.totalKills < 30) return 1;
+    let p = 2;
+    while (state.totalKills >= threshold(p)) p++;
+    return p - 1;
+  }
+
+  function threshold(p) { return 5 * p * p + 15 * p - 20; }
+
+  function killsToNextPhase() {
+    const p = getPhase();
+    return threshold(p + 1) - state.totalKills;
+  }
+
+  function alienHP() {
+    const p = getPhase();
+    const diffMult = [1, 1.5, 2, 3, 4, 5][state.prestige] || 1;
+    let base;
+    if (p <= 11) {
+      const hpTable = [0, 1, 2, 3, 4, 6, 8, 10, 13, 16, 20, 25];
+      base = hpTable[p];
+    } else {
+      base = 25 + (p - 11) * 3;
+    }
+    return Math.floor(base * diffMult);
+  }
+
+  function spawnAlien() {
+    const available = getAvailableAliens();
+    const img = available.length > 0 ? available[Math.floor(Math.random() * available.length)] : alienImages[Math.min(state.prestige, 5)][0];
+    const iw = img.naturalWidth || 32;
+    const ih = img.naturalHeight || 32;
+    const scale = ALIEN_SIZE / iw;
+    const w = iw * scale;
+    const h = ih * scale;
+    const pad = 60;
+    const angle = Math.random() * Math.PI * 2;
+    const cx = W / 2;
+    const cy = H / 2;
+    const rx = (W / 2 - w / 2 - pad) * 0.7;
+    const ry = (H / 2 - h / 2 - pad) * 0.7;
+    const hp = alienHP();
+    const velMult = [1, 1.1, 1.2, 1.3, 1.5, 1.7][state.prestige] || 1;
+    return {
+      x: cx + Math.cos(angle) * rx - w / 2,
+      y: cy + Math.sin(angle) * ry - h / 2,
+      vx: (Math.random() - 0.5) * 2.5 * velMult,
+      vy: (Math.random() - 0.5) * 2.5 * velMult,
+      w: w,
+      h: h,
+      alive: true,
+      hp: hp,
+      maxHp: hp,
+      img: img,
+    };
+  }
+
+  for (let i = 0; i < getMaxAliens(); i++) aliens.push(spawnAlien());
+
+  function usePowerUp(type) {
+    const now = Date.now();
+    if (type === 'click') {
+      if (!state.clickOwned && state.kills >= 20) {
+        state.kills -= 20;
+        state.clickOwned = true;
+        save();
+        uiDirty = true;
+        updateUI();
+        return;
+      }
+      if (state.clickOwned && now >= state.clickCooldownEnd && now >= state.clickBuffEnd) {
+        state.clickMult = 4;
+        state.clickBuffEnd = now + 30000;
+        state.clickCooldownEnd = now + 30000 + 60000;
+        save();
+        uiDirty = true;
+        updateUI();
+      }
+    } else if (type === 'turret') {
+      if (!state.turretOwned && state.kills >= 100) {
+        state.kills -= 100;
+        state.turretOwned = true;
+        save();
+        uiDirty = true;
+        updateUI();
+        return;
+      }
+      if (state.turretOwned && now >= state.turretCooldownEnd && now >= state.turretBuffEnd) {
+        state.turretMult = 4;
+        state.turretBuffEnd = now + 30000;
+        state.turretCooldownEnd = now + 30000 + 120000;
+        save();
+        uiDirty = true;
+        updateUI();
+      }
+    } else if (type === 'splash') {
+      if (!state.splashOwned && state.kills >= 500) {
+        state.kills -= 500;
+        state.splashOwned = true;
+        save();
+        uiDirty = true;
+        updateUI();
+        return;
+      }
+      if (state.splashOwned && now >= state.splashCooldownEnd && now >= state.splashBuffEnd) {
+        state.splashActive = true;
+        state.splashBuffEnd = now + 10000;
+        state.splashCooldownEnd = now + 10000 + 120000;
+        save();
+        uiDirty = true;
+        updateUI();
+      }
+    } else if (type === 'bounty') {
+      if (!state.bountyOwned && state.kills >= 500) {
+        state.kills -= 500;
+        state.bountyOwned = true;
+        save();
+        uiDirty = true;
+        updateUI();
+        return;
+      }
+      if (state.bountyOwned && now >= state.bountyCooldownEnd && now >= state.bountyBuffEnd) {
+        state.bountyMult = 5;
+        state.bountyBuffEnd = now + 15000;
+        state.bountyCooldownEnd = now + 15000 + 180000;
+        save();
+        uiDirty = true;
+        updateUI();
+      }
+    } else if (type === 'rapidfire') {
+      if (!state.rapidFireOwned && state.kills >= 500) {
+        state.kills -= 500;
+        state.rapidFireOwned = true;
+        save();
+        uiDirty = true;
+        updateUI();
+        return;
+      }
+      if (state.rapidFireOwned && now >= state.rapidFireCooldownEnd && now >= state.rapidFireBuffEnd) {
+        state.rapidFireActive = true;
+        state.savedTurretInterval = state.turretInterval;
+        state.turretInterval = 500;
+        state.rapidFireBuffEnd = now + 10000;
+        state.rapidFireCooldownEnd = now + 10000 + 120000;
+        save();
+        uiDirty = true;
+        updateUI();
+      }
+    } else if (type === 'volley') {
+      if (!state.volleyOwned && state.kills >= 500) {
+        state.kills -= 500;
+        state.volleyOwned = true;
+        save();
+        uiDirty = true;
+        updateUI();
+        return;
+      }
+      if (state.volleyOwned && now >= state.volleyCooldownEnd && now >= state.volleyBuffEnd) {
+        state.volleyActive = true;
+        state.volleyBuffEnd = now + 20000;
+        state.volleyCooldownEnd = now + 20000 + 120000;
+        save();
+        uiDirty = true;
+        updateUI();
+      }
+    }
+  }
+
+  function checkPowerUps(now) {
+    if (state.clickMult > 1 && now >= state.clickBuffEnd) {
+      state.clickMult = 1;
+    }
+    if (state.turretMult > 1 && now >= state.turretBuffEnd) {
+      state.turretMult = 1;
+    }
+    if (state.splashActive && now >= state.splashBuffEnd) {
+      state.splashActive = false;
+    }
+    if (state.bountyMult > 1 && now >= state.bountyBuffEnd) {
+      state.bountyMult = 1;
+    }
+    if (state.rapidFireActive && now >= state.rapidFireBuffEnd) {
+      state.rapidFireActive = false;
+      state.turretInterval = state.savedTurretInterval;
+    }
+    if (state.volleyActive && now >= state.volleyBuffEnd) {
+      state.volleyActive = false;
+    }
+  }
+
+  const SAVE_GLOBAL = 'clicker_global';
+
+  function loadGlobal() {
+    try {
+      const raw = localStorage.getItem(SAVE_GLOBAL);
+      if (!raw) return;
+      const data = JSON.parse(raw);
+      if (data.levelUnlocked) globalState.levelUnlocked = data.levelUnlocked;
+      if (data.levelPrestige) globalState.levelPrestige = data.levelPrestige;
+      if (data.levelCompleted) globalState.levelCompleted = data.levelCompleted;
+    } catch(e) {}
+  }
+
+  function saveGlobal() {
+    localStorage.setItem(SAVE_GLOBAL, JSON.stringify(globalState));
+  }
+
+  function save() {
+    const data = {
+      prestige: state.prestige,
+      coins: state.coins,
+      clickPower: state.clickPower,
+      totalKills: state.totalKills,
+      kills: state.kills,
+      turretDmg: state.turretDmg,
+      turretShots: state.turretShots,
+      turretInterval: state.turretInterval,
+      turretCount: state.turretCount,
+      clickMult: state.clickMult,
+      turretMult: state.turretMult,
+      clickOwned: state.clickOwned,
+      turretOwned: state.turretOwned,
+      clickBuffEnd: state.clickBuffEnd,
+      turretBuffEnd: state.turretBuffEnd,
+      clickCooldownEnd: state.clickCooldownEnd,
+      turretCooldownEnd: state.turretCooldownEnd,
+      splashOwned: state.splashOwned,
+      splashActive: state.splashActive,
+      splashBuffEnd: state.splashBuffEnd,
+      splashCooldownEnd: state.splashCooldownEnd,
+      bountyOwned: state.bountyOwned,
+      bountyMult: state.bountyMult,
+      bountyBuffEnd: state.bountyBuffEnd,
+      bountyCooldownEnd: state.bountyCooldownEnd,
+      rapidFireOwned: state.rapidFireOwned,
+      rapidFireActive: state.rapidFireActive,
+      rapidFireBuffEnd: state.rapidFireBuffEnd,
+      rapidFireCooldownEnd: state.rapidFireCooldownEnd,
+      savedTurretInterval: state.savedTurretInterval,
+      volleyOwned: state.volleyOwned,
+      volleyActive: state.volleyActive,
+      volleyBuffEnd: state.volleyBuffEnd,
+      volleyCooldownEnd: state.volleyCooldownEnd,
+      coinMult: state.coinMult,
+      levels: state.levels,
+    };
+    localStorage.setItem('clicker_level_' + state.currentLevel, JSON.stringify(data));
+  }
+
+  function load() {
+    try {
+      const raw = localStorage.getItem('clicker_level_' + state.currentLevel);
+      if (!raw) return;
+      const data = JSON.parse(raw);
+      const now = Date.now();
+      if (typeof data.prestige === 'number') state.prestige = data.prestige;
+      if (typeof data.coins === 'number') state.coins = data.coins;
+      if (typeof data.clickPower === 'number') state.clickPower = data.clickPower;
+      if (typeof data.totalKills === 'number') state.totalKills = data.totalKills;
+      if (typeof data.kills === 'number') state.kills = data.kills;
+      if (typeof data.turretDmg === 'number') state.turretDmg = data.turretDmg;
+      if (typeof data.turretShots === 'number') state.turretShots = data.turretShots;
+      if (typeof data.turretInterval === 'number') state.turretInterval = data.turretInterval;
+      if (typeof data.turretCount === 'number') state.turretCount = data.turretCount;
+      if (typeof data.clickMult === 'number') state.clickMult = data.clickMult;
+      if (typeof data.turretMult === 'number') state.turretMult = data.turretMult;
+      if (typeof data.clickOwned === 'boolean') state.clickOwned = data.clickOwned;
+      if (typeof data.turretOwned === 'boolean') state.turretOwned = data.turretOwned;
+      if (typeof data.clickBuffEnd === 'number') state.clickBuffEnd = data.clickBuffEnd;
+      if (typeof data.turretBuffEnd === 'number') state.turretBuffEnd = data.turretBuffEnd;
+      if (typeof data.clickCooldownEnd === 'number') state.clickCooldownEnd = data.clickCooldownEnd;
+      if (typeof data.turretCooldownEnd === 'number') state.turretCooldownEnd = data.turretCooldownEnd;
+      if (typeof data.splashOwned === 'boolean') state.splashOwned = data.splashOwned;
+      if (typeof data.splashActive === 'boolean') state.splashActive = data.splashActive;
+      if (typeof data.splashBuffEnd === 'number') state.splashBuffEnd = data.splashBuffEnd;
+      if (typeof data.splashCooldownEnd === 'number') state.splashCooldownEnd = data.splashCooldownEnd;
+      if (typeof data.bountyOwned === 'boolean') state.bountyOwned = data.bountyOwned;
+      if (typeof data.bountyMult === 'number') state.bountyMult = data.bountyMult;
+      if (typeof data.bountyBuffEnd === 'number') state.bountyBuffEnd = data.bountyBuffEnd;
+      if (typeof data.bountyCooldownEnd === 'number') state.bountyCooldownEnd = data.bountyCooldownEnd;
+      if (typeof data.rapidFireOwned === 'boolean') state.rapidFireOwned = data.rapidFireOwned;
+      if (typeof data.rapidFireActive === 'boolean') state.rapidFireActive = data.rapidFireActive;
+      if (typeof data.rapidFireBuffEnd === 'number') state.rapidFireBuffEnd = data.rapidFireBuffEnd;
+      if (typeof data.rapidFireCooldownEnd === 'number') state.rapidFireCooldownEnd = data.rapidFireCooldownEnd;
+      if (typeof data.savedTurretInterval === 'number') state.savedTurretInterval = data.savedTurretInterval;
+      if (typeof data.volleyOwned === 'boolean') state.volleyOwned = data.volleyOwned;
+      if (typeof data.volleyActive === 'boolean') state.volleyActive = data.volleyActive;
+      if (typeof data.volleyBuffEnd === 'number') state.volleyBuffEnd = data.volleyBuffEnd;
+      if (typeof data.volleyCooldownEnd === 'number') state.volleyCooldownEnd = data.volleyCooldownEnd;
+      if (typeof data.coinMult === 'number') state.coinMult = data.coinMult;
+      if (now >= state.clickBuffEnd) state.clickMult = 1;
+      if (now >= state.turretBuffEnd) state.turretMult = 1;
+      if (now >= state.splashBuffEnd) state.splashActive = false;
+      if (now >= state.bountyBuffEnd) state.bountyMult = 1;
+      if (now >= state.rapidFireBuffEnd) { state.rapidFireActive = false; state.turretInterval = state.savedTurretInterval; }
+      if (now >= state.volleyBuffEnd) state.volleyActive = false;
+      if (data.levels) {
+        if (typeof data.levels.clickPower === 'number') state.levels.clickPower = data.levels.clickPower;
+        if (typeof data.levels.turretDmg === 'number') state.levels.turretDmg = data.levels.turretDmg;
+        if (typeof data.levels.turretShots === 'number') state.levels.turretShots = data.levels.turretShots;
+        if (typeof data.levels.turretClock === 'number') state.levels.turretClock = data.levels.turretClock;
+        if (typeof data.levels.turretCount === 'number') state.levels.turretCount = data.levels.turretCount;
+        if (typeof data.levels.techBoost === 'number') state.levels.techBoost = data.levels.techBoost;
+      }
+    } catch(e) {}
+  }
+
+  function cost(type) {
+    if (type === 'turretCount') {
+      if (state.levels.turretCount === 0) return 200;
+      if (state.levels.turretCount === 1) return 2000;
+      return Math.floor(2000 * Math.pow(state.costMult.turretCount, state.levels.turretCount - 1));
+    }
+    return Math.floor(state.costs[type] * Math.pow(state.costMult[type], state.levels[type]));
+  }
+
+  function buy(type) {
+    let c = cost(type);
+    if (state.coins < c) return;
+    if (type === 'turretCount' && state.turretCount >= 6) return;
+    state.coins -= c;
+    state.levels[type]++;
+    if (type === 'clickPower') state.clickPower++;
+    else if (type === 'turretDmg') state.turretDmg++;
+    else if (type === 'turretShots') state.turretShots++;
+    else if (type === 'turretClock') {
+      state.turretInterval = Math.max(200, Math.floor(3000 * Math.pow(0.92, state.levels.turretClock)));
+    } else if (type === 'turretCount') {
+      state.turretCount++;
+    } else if (type === 'techBoost') {
+      state.coinMult *= 2;
+    } else if (type === 'prestige') {
+      prestigeNow();
+      return;
+    }
+    save();
+    uiDirty = true;
+    updateUI();
+  }
+
+  function getCPS() {
+    if (state.turretShots === 0) return 0;
+    return state.turretShots / (state.turretInterval / 1000);
+  }
+
+  function updateUI() {
+    document.getElementById('coinDisplay').textContent = Math.floor(state.coins).toLocaleString();
+    document.getElementById('coinsPerSec').textContent = getCPS().toFixed(1) + '/s';
+    document.getElementById('perClick').textContent = 'dmg:+' + (state.clickPower * state.clickMult);
+    document.getElementById('phaseLabel').textContent = 'PHASE ' + getPhase();
+    document.getElementById('nextPhaseLabel').textContent = 'next:' + killsToNextPhase();
+    document.getElementById('killLabel').textContent = 'kills:' + state.kills;
+
+    const cpC = cost('clickPower');
+    document.getElementById('cpLevel').textContent = 'Lv.' + state.levels.clickPower;
+    document.getElementById('cpEffect').textContent = '+' + state.levels.clickPower + ' dmg per hit';
+    document.getElementById('cpCost').textContent = '$' + cpC.toLocaleString();
+    document.getElementById('cpBuy').disabled = state.coins < cpC;
+    document.getElementById('uiClickPower').classList.toggle('can-buy', state.coins >= cpC);
+
+    const tdC = cost('turretDmg');
+    document.getElementById('tdLevel').textContent = 'Lv.' + state.levels.turretDmg;
+    document.getElementById('tdEffect').textContent = state.turretDmg + ' dmg per shot';
+    document.getElementById('tdCost').textContent = '$' + tdC.toLocaleString();
+    document.getElementById('tdBuy').disabled = state.coins < tdC || state.turretCount === 0;
+    document.getElementById('uiTurretDmg').classList.toggle('can-buy', state.coins >= tdC && state.turretCount > 0);
+
+    const tsC = cost('turretShots');
+    document.getElementById('tsLevel').textContent = 'Lv.' + state.levels.turretShots;
+    document.getElementById('tsEffect').textContent = state.turretShots + ' shots / volley';
+    document.getElementById('tsCost').textContent = '$' + tsC.toLocaleString();
+    document.getElementById('tsBuy').disabled = state.coins < tsC || state.turretCount === 0;
+    document.getElementById('uiTurretShots').classList.toggle('can-buy', state.coins >= tsC && state.turretCount > 0);
+
+    const tcC = cost('turretClock');
+    document.getElementById('tcLevel').textContent = 'Lv.' + state.levels.turretClock;
+    document.getElementById('tcEffect').textContent = 'interval: ' + state.turretInterval + 'ms';
+    document.getElementById('tcCost').textContent = '$' + tcC.toLocaleString();
+    document.getElementById('tcBuy').disabled = state.coins < tcC || state.turretCount === 0;
+    document.getElementById('uiTurretClock').classList.toggle('can-buy', state.coins >= tcC && state.turretCount > 0);
+
+    const tcnC = cost('turretCount');
+    document.getElementById('tcnLevel').textContent = 'Lv.' + state.levels.turretCount;
+    document.getElementById('tcnEffect').textContent = state.turretCount + ' turrets';
+    if (state.turretCount >= 6) {
+      document.getElementById('tcnCost').textContent = 'MAX';
+      document.getElementById('tcnBuy').disabled = true;
+      document.getElementById('uiTurretCount').classList.remove('can-buy');
+    } else {
+      document.getElementById('tcnCost').textContent = '$' + tcnC.toLocaleString();
+      document.getElementById('tcnBuy').disabled = state.coins < tcnC;
+      document.getElementById('uiTurretCount').classList.toggle('can-buy', state.coins >= tcnC);
+    }
+
+    const tbC = cost('techBoost');
+    document.getElementById('tbLevel').textContent = 'Lv.' + state.levels.techBoost;
+    document.getElementById('tbEffect').textContent = state.levels.techBoost > 0 ? 'x' + state.coinMult + ' pts per kill' : 'next: x2 pts per kill';
+    document.getElementById('tbCost').textContent = '$' + tbC.toLocaleString();
+    document.getElementById('tbBuy').disabled = state.coins < tbC;
+    document.getElementById('uiTechBoost').classList.toggle('can-buy', state.coins >= tbC);
+
+    const prestigeItem = document.getElementById('uiPrestige');
+    if (getPhase() >= 50 && globalState.levelPrestige[state.currentLevel - 1] < 5) {
+      prestigeItem.style.display = 'block';
+      document.getElementById('prBuy').disabled = state.coins <= 0;
+      document.getElementById('prBuy').textContent = 'PRESTIGE';
+    } else {
+      prestigeItem.style.display = 'none';
+    }
+
+    updatePwrPanel();
+  }
+
+  function updatePwrPanel() {
+    const now = Date.now();
+    updatePwrBtn('cpwrBtn', 'cpwrCost', state.clickOwned, state.clickBuffEnd, state.clickCooldownEnd, state.kills, 20, now);
+    updatePwrBtn('spBtn', 'spCost', state.splashOwned, state.splashBuffEnd, state.splashCooldownEnd, state.kills, 500, now);
+    updatePwrBtn('bpBtn', 'bpCost', state.bountyOwned, state.bountyBuffEnd, state.bountyCooldownEnd, state.kills, 500, now);
+    updatePwrBtn('tpwrBtn', 'tpwrCost', state.turretOwned, state.turretBuffEnd, state.turretCooldownEnd, state.kills, 100, now);
+    updatePwrBtn('rfBtn', 'rfCost', state.rapidFireOwned, state.rapidFireBuffEnd, state.rapidFireCooldownEnd, state.kills, 500, now);
+    updatePwrBtn('vpBtn', 'vpCost', state.volleyOwned, state.volleyBuffEnd, state.volleyCooldownEnd, state.kills, 500, now);
+  }
+
+  function updatePwrBtn(btnId, costId, owned, buffEnd, cdEnd, kills, costK, now) {
+    const btn = document.getElementById(btnId);
+    const costEl = document.getElementById(costId);
+    if (!owned) {
+      costEl.textContent = costK + ' kills';
+      btn.textContent = 'BUY';
+      btn.disabled = kills < costK;
+    } else if (now < buffEnd) {
+      const left = Math.ceil((buffEnd - now) / 1000);
+      costEl.textContent = 'ACTIVE';
+      btn.textContent = left + 's';
+      btn.disabled = true;
+    } else if (now < cdEnd) {
+      const left = Math.ceil((cdEnd - now) / 1000);
+      costEl.textContent = 'COOLDOWN';
+      btn.textContent = left + 's';
+      btn.disabled = true;
+    } else {
+      costEl.textContent = 'READY';
+      btn.textContent = 'ACTIVATE';
+      btn.disabled = false;
+    }
+  }
+
+  function togglePanel() {
+    const p = document.getElementById('upgradePanel');
+    const b = document.getElementById('toggleBtn');
+    p.classList.toggle('open');
+    b.textContent = p.classList.contains('open') ? '[ - ]' : '[ + ]';
+  }
+
+  function togglePwrPanel() {
+    const p = document.getElementById('pwrPanel');
+    const b = document.getElementById('pwrToggleBtn');
+    p.classList.toggle('open');
+    b.textContent = p.classList.contains('open') ? '[ > ]' : '[ < ]';
+  }
+
+  function floatText(x, y, txt) {
+    const el = document.createElement('div');
+    el.className = 'float-credit';
+    el.textContent = txt;
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+    document.body.appendChild(el);
+    el.addEventListener('animationend', () => el.remove());
+  }
+
+  function hitAlien(idx, dmg, mx, my, source) {
+    const a = aliens[idx];
+    const cx = a.x + a.w / 2;
+    const cy = a.y + a.h / 2;
+    a.hp -= dmg;
+    floatText(mx - 15, my - 10, '-' + dmg);
+    for (let i = 0; i < 6; i++) {
+      particles.push({
+        x: cx + (Math.random() - 0.5) * 10, y: cy + (Math.random() - 0.5) * 10,
+        vx: (Math.random() - 0.5) * 3,
+        vy: (Math.random() - 0.5) * 3,
+        life: 8 + Math.random() * 8,
+      });
+    }
+    if (a.hp <= 0) {
+      const pts = state.clickPower * state.coinMult + (getPhase() - 1);
+      const reward = (source === 'click' && state.bountyMult > 1) ? pts * 5 : pts;
+      state.coins += reward;
+      state.totalKills++;
+      state.kills++; 
+      floatText(cx - 20, cy - 15, '+' + reward);
+      for (let i = 0; i < 12; i++) {
+        particles.push({
+          x: cx, y: cy,
+          vx: (Math.random() - 0.5) * 4,
+          vy: (Math.random() - 0.5) * 4,
+          life: 20 + Math.random() * 15,
+        });
+      }
+      aliens[idx].alive = false;
+      aliens[idx] = spawnAlien();
+      syncAliens();
+    }
+    save();
+    uiDirty = true;
+    updateUI();
+  }
+
+  canvas.addEventListener('click', (e) => {
+    if (screen !== 'game') return;
+    const mx = e.clientX, my = e.clientY;
+    if (state.splashActive) {
+      for (let i = aliens.length - 1; i >= 0; i--) {
+        if (aliens[i].alive) hitAlien(i, state.clickPower * state.clickMult, mx, my, 'click');
+      }
+      return;
+    }
+    for (let i = aliens.length - 1; i >= 0; i--) {
+      const a = aliens[i];
+      if (mx >= a.x && mx <= a.x + a.w && my >= a.y && my <= a.y + a.h && a.alive) {
+        hitAlien(i, state.clickPower * state.clickMult, mx, my, 'click');
+        return;
+      }
+    }
+  });
+
+  function fireBullet(turretIdx) {
+    const alive = aliens.filter(a => a.alive);
+    if (alive.length === 0) return;
+    const target = alive[Math.floor(Math.random() * alive.length)];
+    const tx = target.x + target.w / 2;
+    const ty = target.y + target.h / 2;
+    const tpos = turretPos(turretIdx);
+    const sx = tpos.x;
+    const sy = tpos.y;
+    const dist = Math.hypot(tx - sx, ty - sy);
+    if (dist === 0) return;
+    const speed = 7;
+    bullets.push({
+      x: sx, y: sy,
+      vx: (tx - sx) / dist * speed,
+      vy: (ty - sy) / dist * speed,
+      target: target,
+      speed: speed,
+      age: 0,
+    });
+  }
+
+  function turretPos(idx) {
+    const count = Math.max(state.turretCount, 1);
+    const spacing = W / (count + 1);
+    return { x: spacing * (idx + 1), y: H - 20 };
+  }
+
+  function drawTurrets() {
+    for (let i = 0; i < 6; i++) {
+      const tp = turretPos(i);
+      if (i < state.turretCount && turretImg.complete && turretImg.naturalWidth > 0) {
+        const ts = 48 / turretImg.naturalWidth;
+        const tw = turretImg.naturalWidth * ts;
+        const th = turretImg.naturalHeight * ts;
+        ctx.drawImage(turretImg, tp.x - tw / 2, tp.y - th, tw, th);
+      } else if (state.turretCount > 0) {
+        ctx.strokeStyle = palette.dim;
+        ctx.lineWidth = 0.5;
+        ctx.strokeRect(tp.x - 4, tp.y - 4, 8, 8);
+      }
+    }
+  }
+
+  let autoAccum = 0;
+  let lastTime = performance.now();
+  let uiDirty = true;
+  let pendingBullets = [];
+  let paused = false;
+  let lastPhase = 1;
+  let phasePopupTimer = 0;
+
+  function toggleSettings() {
+    const panel = document.getElementById('settingsPanel');
+    const open = panel.classList.toggle('open');
+    paused = open;
+    if (paused) lastTime = performance.now();
+  }
+
+  function resumeGame() {
+    document.getElementById('settingsPanel').classList.remove('open');
+    paused = false;
+    lastTime = performance.now();
+  }
+
+  function resetGame() {
+    if (confirm('Reset ALL progress? This cannot be undone.')) {
+      localStorage.removeItem('clicker_save');
+    for (let i = 1; i <= 5; i++) localStorage.removeItem('clicker_level_' + i);
+    localStorage.removeItem('clicker_global');
+      location.reload();
+    }
+  }
+
+  function goToTitle() {
+    document.getElementById('settingsPanel').classList.remove('open');
+    document.getElementById('upgradePanel').classList.remove('open');
+    document.getElementById('pwrPanel').classList.remove('open');
+    document.getElementById('gameHUD').style.display = 'none';
+    document.getElementById('toggleBtn').style.display = 'none';
+    document.getElementById('pwrToggleBtn').style.display = 'none';
+    document.getElementById('settingsBtn').style.display = 'none';
+    for (let i = 1; i <= 5; i++) document.getElementById('lvlBtn' + i).style.display = 'none';
+    document.getElementById('lvlBackBtn').style.display = 'none';
+    paused = false;
+    screen = 'title';
+    aliens.length = 0;
+    bullets.length = 0;
+    particles.length = 0;
+    pendingBullets.length = 0;
+    for (let i = 0; i < getMaxAliens(); i++) aliens.push(spawnAlien());
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && screen === 'game') toggleSettings();
+  });
+
+  function gameLoop(now) {
+    const dt = Math.min(now - lastTime, 50);
+    lastTime = now;
+
+    if (screen === 'title') {
+      drawTitleScreen(now);
+      requestAnimationFrame(gameLoop);
+      return;
+    }
+
+    if (screen === 'levels') {
+      drawLevelsScreen();
+      requestAnimationFrame(gameLoop);
+      return;
+    }
+
+    if (paused) {
+      requestAnimationFrame(gameLoop);
+      return;
+    }
+
+    checkPowerUps(Date.now());
+
+    const cp = getPhase();
+    if (cp > lastPhase) {
+      lastPhase = cp;
+      phasePopupTimer = 1000;
+    }
+
+    if (getPhase() >= 50 && !globalState.levelCompleted[state.currentLevel - 1]) {
+      levelComplete();
+    }
+    if (phasePopupTimer > 0) phasePopupTimer -= dt;
+
+    for (let a of aliens) {
+      if (!a.alive) continue;
+      a.x += a.vx;
+      a.y += a.vy;
+      if (a.x < 0) { a.x = 0; a.vx *= -1; }
+      if (a.y < 0) { a.y = 0; a.vy *= -1; }
+      if (a.x + a.w > W) { a.x = W - a.w; a.vx *= -1; }
+      if (a.y + a.h > H) { a.y = H - a.h; a.vy *= -1; }
+    }
+
+    autoAccum += dt;
+    while (autoAccum >= state.turretInterval) {
+      autoAccum -= state.turretInterval;
+      const shots = state.turretShots + (state.volleyActive ? 3 : 0);
+      const total = state.turretCount * shots;
+      for (let i = 0; i < total; i++) {
+        pendingBullets.push({ turret: i % state.turretCount, delay: i * 40 });
+      }
+    }
+
+    for (let i = pendingBullets.length - 1; i >= 0; i--) {
+      pendingBullets[i].delay -= dt;
+      if (pendingBullets[i].delay <= 0) {
+        fireBullet(pendingBullets[i].turret);
+        pendingBullets[i] = pendingBullets[pendingBullets.length - 1];
+        pendingBullets.pop();
+      }
+    }
+
+    for (let i = bullets.length - 1; i >= 0; i--) {
+      const b = bullets[i];
+      b.age++;
+      if (b.target && b.target.alive) {
+        const tx = b.target.x + b.target.w / 2;
+        const ty = b.target.y + b.target.h / 2;
+        const dx = tx - b.x;
+        const dy = ty - b.y;
+        const dist = Math.hypot(dx, dy);
+        const homingStrength = Math.min(0.25, b.age * 0.02);
+        if (dist > 0) {
+          b.vx += ((dx / dist * b.speed) - b.vx) * homingStrength;
+          b.vy += ((dy / dist * b.speed) - b.vy) * homingStrength;
+          const mag = Math.hypot(b.vx, b.vy);
+          if (mag > 0) { b.vx = b.vx / mag * b.speed; b.vy = b.vy / mag * b.speed; }
+        }
+        b.x += b.vx;
+        b.y += b.vy;
+        if (dist < 14) {
+          const tidx = aliens.indexOf(b.target);
+          if (tidx >= 0) {
+            hitAlien(tidx, state.turretDmg * state.turretMult, b.x, b.y, 'bullet');
+          }
+          bullets.splice(i, 1);
+          continue;
+        }
+      }
+      if (b.target && !b.target.alive) {
+        b.x += b.vx;
+        b.y += b.vy;
+      }
+      if (b.x < -20 || b.x > W + 20 || b.y < -20 || b.y > H + 20) {
+        bullets.splice(i, 1);
+      }
+    }
+
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.life--;
+      if (p.life <= 0) {
+        particles[i] = particles[particles.length - 1];
+        particles.pop();
+      }
+    }
+
+    ctx.clearRect(0, 0, W, H);
+    if (bgLoaded) {
+      ctx.drawImage(bgImg, 0, 0, bgImg.naturalWidth, bgImg.naturalHeight, 0, 0, W, H);
+    } else {
+      ctx.fillStyle = palette.bg;
+      ctx.fillRect(0, 0, W, H);
+    }
+
+    ctx.strokeStyle = 'rgba(' + hexToRgb(palette.primary) + ',0.03)';
+    ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    const gs = 32;
+    for (let x = gs; x < W; x += gs) { ctx.moveTo(x, 0); ctx.lineTo(x, H); }
+    for (let y = gs; y < H; y += gs) { ctx.moveTo(0, y); ctx.lineTo(W, y); }
+    ctx.stroke();
+
+    if (phasePopupTimer > 0) {
+      const t = phasePopupTimer / 1000;
+      const alpha = t < 0.15 ? t / 0.15 : t > 0.7 ? (1 - t) / 0.3 : 1;
+      ctx.fillStyle = palette.primary;
+      ctx.globalAlpha = alpha;
+      ctx.font = 'bold 80px "Share Tech Mono", monospace';
+      ctx.textAlign = 'center';
+      ctx.shadowColor = palette.primary;
+      ctx.shadowBlur = 30;
+      ctx.fillText('PHASE ' + lastPhase, W / 2, H / 2);
+      ctx.shadowBlur = 0;
+      ctx.globalAlpha = 1;
+    }
+
+    for (let a of aliens) {
+      if (!a.alive) continue;
+      drawAlien(a.x, a.y, a);
+      if (a.hp < a.maxHp) {
+        const barW = a.w;
+        const barH = 3;
+        const bx = a.x;
+        const by = a.y + a.h + 4;
+        ctx.fillStyle = palette.dim;
+        ctx.fillRect(bx, by, barW, barH);
+        ctx.fillStyle = palette.primary;
+        ctx.fillRect(bx, by, (a.hp / a.maxHp) * barW, barH);
+      }
+    }
+
+    ctx.fillStyle = palette.primary;
+    for (let b of bullets) {
+      ctx.fillRect(b.x - 2, b.y - 2, 4, 4);
+    }
+    for (let b of bullets) {
+      ctx.fillStyle = 'rgba(' + hexToRgb(palette.primary) + ',0.3)';
+      ctx.fillRect(b.x - 4, b.y - 4, 8, 8);
+    }
+
+    ctx.fillStyle = palette.primary;
+    for (let p of particles) {
+      ctx.globalAlpha = p.life / 30;
+      ctx.fillRect(p.x - 1, p.y - 1, 2, 2);
+    }
+    ctx.globalAlpha = 1;
+
+    drawTurrets();
+
+    if (uiDirty) {
+      updateUI();
+      uiDirty = false;
+    } else {
+      updatePwrPanel();
+    }
+    requestAnimationFrame(gameLoop);
+  }
+
+  loadGlobal();
+  setPalette(0);
+  updateUI();
+  requestAnimationFrame(gameLoop);
+</script>
+</body>
+</html>
