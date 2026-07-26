@@ -1560,8 +1560,9 @@
           a.y += a.vy;
         }
         a.attackAccum += dt;
-        if (a.attackAccum >= 3000) {
-          a.attackAccum -= 3000;
+        const attackInterval = Math.max(500, 3000 - (getPhase() - 10) * 50);
+        if (a.attackAccum >= attackInterval) {
+          a.attackAccum -= attackInterval;
           const bulletSpeed = 5;
           const bdist = Math.hypot(dx, dy);
           if (bdist > 0) {
