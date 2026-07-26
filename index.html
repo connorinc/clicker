@@ -592,6 +592,9 @@
 
   let turretImg = new Image();
   turretImg.src = 'torreta.png';
+
+  let policiaImg = new Image();
+  policiaImg.src = 'alien policia.png';
   function drawTitleScreen() {
     ctx.fillStyle = palette.bg;
     ctx.fillRect(0, 0, W, H);
@@ -657,6 +660,7 @@
     state.turretShots = 1;
     state.turretInterval = 3000;
     state.turretCount = 0;
+    state.turretHP = [];
     state.clickMult = 1;
     state.turretMult = 1;
     state.clickOwned = false;
@@ -762,6 +766,7 @@
     turretShots: 1,
     turretInterval: 3000,
     turretCount: 0,
+    turretHP: [],
     clickMult: 1,
     turretMult: 1,
     clickOwned: false,
@@ -876,9 +881,17 @@
     return Math.floor(base * diffMult);
   }
 
+  function isPolicePhase() {
+    const p = getPhase();
+    return p >= 10 && p % 10 === 0;
+  }
+
   function spawnAlien() {
-    const available = getAvailableAliens();
-    const img = available.length > 0 ? available[Math.floor(Math.random() * available.length)] : alienImages[Math.min(state.prestige, 5)][0];
+    const isPolice = isPolicePhase() && policiaImg.complete && policiaImg.naturalWidth > 0;
+    const img = isPolice ? policiaImg : (() => {
+      const a = getAvailableAliens();
+      return a.length > 0 ? a[Math.floor(Math.random() * a.length)] : alienImages[Math.min(state.prestige, 5)][0];
+    })();
     const iw = img.naturalWidth || 32;
     const ih = img.naturalHeight || 32;
     const scale = ALIEN_SIZE / iw;
@@ -903,6 +916,9 @@
       hp: hp,
       maxHp: hp,
       img: img,
+      isPolice: isPolice,
+      turretTarget: isPolice ? Math.floor(Math.random() * Math.max(1, state.turretCount)) : -1,
+      attackAccum: 0,
     };
   }
 
@@ -1067,6 +1083,7 @@
       turretShots: state.turretShots,
       turretInterval: state.turretInterval,
       turretCount: state.turretCount,
+      turretHP: state.turretHP,
       clickMult: state.clickMult,
       turretMult: state.turretMult,
       clickOwned: state.clickOwned,
@@ -1113,6 +1130,7 @@
       if (typeof data.turretShots === 'number') state.turretShots = data.turretShots;
       if (typeof data.turretInterval === 'number') state.turretInterval = data.turretInterval;
       if (typeof data.turretCount === 'number') state.turretCount = data.turretCount;
+      if (Array.isArray(data.turretHP)) state.turretHP = data.turretHP;
       if (typeof data.clickMult === 'number') state.clickMult = data.clickMult;
       if (typeof data.turretMult === 'number') state.turretMult = data.turretMult;
       if (typeof data.clickOwned === 'boolean') state.clickOwned = data.clickOwned;
@@ -1178,6 +1196,13 @@
       state.turretInterval = Math.max(200, Math.floor(3000 * Math.pow(0.92, state.levels.turretClock)));
     } else if (type === 'turretCount') {
       state.turretCount++;
+      const idx = state.turretCount - 1;
+      if (idx >= state.turretHP.length) {
+        state.turretHP.push(3);
+        state.levels.turretCount++;
+      } else {
+        state.turretHP[idx] = 3;
+      }
     } else if (type === 'techBoost') {
       state.coinMult *= 2;
     } else if (type === 'prestige') {
@@ -1399,8 +1424,7 @@
   }
 
   function turretPos(idx) {
-    const count = Math.max(state.turretCount, 1);
-    const spacing = W / (count + 1);
+    const spacing = W / 7;
     return { x: spacing * (idx + 1), y: H - 20 };
   }
 
@@ -1412,6 +1436,17 @@
         const tw = turretImg.naturalWidth * ts;
         const th = turretImg.naturalHeight * ts;
         ctx.drawImage(turretImg, tp.x - tw / 2, tp.y - th, tw, th);
+        const thp = state.turretHP[i] || 3;
+        if (thp < 3) {
+          const bw = tw;
+          const bh = 3;
+          const bx = tp.x - bw / 2;
+          const by = tp.y - 4;
+          ctx.fillStyle = palette.dim;
+          ctx.fillRect(bx, by, bw, bh);
+          ctx.fillStyle = thp === 1 ? '#ff2020' : palette.primary;
+          ctx.fillRect(bx, by, (thp / 3) * bw, bh);
+        }
       } else if (state.turretCount > 0) {
         ctx.strokeStyle = palette.dim;
         ctx.lineWidth = 0.5;
@@ -1509,12 +1544,46 @@
 
     for (let a of aliens) {
       if (!a.alive) continue;
-      a.x += a.vx;
-      a.y += a.vy;
-      if (a.x < 0) { a.x = 0; a.vx *= -1; }
-      if (a.y < 0) { a.y = 0; a.vy *= -1; }
-      if (a.x + a.w > W) { a.x = W - a.w; a.vx *= -1; }
-      if (a.y + a.h > H) { a.y = H - a.h; a.vy *= -1; }
+      if (a.isPolice && state.turretCount > 0 && (a.turretTarget < 0 || a.turretTarget >= state.turretCount)) {
+        a.turretTarget = Math.floor(Math.random() * state.turretCount);
+      }
+      if (a.isPolice && state.turretCount > 0) {
+        const tp = turretPos(a.turretTarget);
+        const dx = tp.x - (a.x + a.w / 2);
+        const dy = tp.y - (a.y + a.h / 2);
+        const dist = Math.hypot(dx, dy);
+        if (dist > 20) {
+          const speed = 2;
+          a.vx = (dx / dist) * speed;
+          a.vy = (dy / dist) * speed;
+          a.x += a.vx;
+          a.y += a.vy;
+        }
+        if (dist < 30) {
+          a.attackAccum += dt;
+          if (a.attackAccum >= 1000) {
+            a.attackAccum -= 1000;
+            const idx = a.turretTarget;
+            state.turretHP[idx] = (state.turretHP[idx] || 3) - 1;
+            if (state.turretHP[idx] <= 0) {
+              state.turretHP.splice(idx, 1);
+              state.turretCount--;
+              a.turretTarget = state.turretCount > 0 ? Math.floor(Math.random() * state.turretCount) : -1;
+            }
+          }
+        }
+        if (a.x < 0) { a.x = 0; }
+        if (a.y < 0) { a.y = 0; }
+        if (a.x + a.w > W) { a.x = W - a.w; }
+        if (a.y + a.h > H) { a.y = H - a.h; }
+      } else {
+        a.x += a.vx;
+        a.y += a.vy;
+        if (a.x < 0) { a.x = 0; a.vx *= -1; }
+        if (a.y < 0) { a.y = 0; a.vy *= -1; }
+        if (a.x + a.w > W) { a.x = W - a.w; a.vx *= -1; }
+        if (a.y + a.h > H) { a.y = H - a.h; a.vy *= -1; }
+      }
     }
 
     autoAccum += dt;
