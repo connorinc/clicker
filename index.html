@@ -1552,24 +1552,29 @@
         const dx = tp.x - (a.x + a.w / 2);
         const dy = tp.y - (a.y + a.h / 2);
         const dist = Math.hypot(dx, dy);
-        if (dist > 20) {
-          const speed = 2;
+        if (dist > 200) {
+          const speed = 1.5;
           a.vx = (dx / dist) * speed;
           a.vy = (dy / dist) * speed;
           a.x += a.vx;
           a.y += a.vy;
         }
-        if (dist < 30) {
-          a.attackAccum += dt;
-          if (a.attackAccum >= 1000) {
-            a.attackAccum -= 1000;
-            const idx = a.turretTarget;
-            state.turretHP[idx] = (state.turretHP[idx] || 3) - 1;
-            if (state.turretHP[idx] <= 0) {
-              state.turretHP.splice(idx, 1);
-              state.turretCount--;
-              a.turretTarget = state.turretCount > 0 ? Math.floor(Math.random() * state.turretCount) : -1;
-            }
+        a.attackAccum += dt;
+        if (a.attackAccum >= 3000) {
+          a.attackAccum -= 3000;
+          const bulletSpeed = 5;
+          const bdist = Math.hypot(dx, dy);
+          if (bdist > 0) {
+            bullets.push({
+              x: a.x + a.w / 2, y: a.y + a.h / 2,
+              vx: (dx / bdist) * bulletSpeed,
+              vy: (dy / bdist) * bulletSpeed,
+              target: a,
+              speed: bulletSpeed,
+              age: 0,
+              isPoliceBullet: true,
+              turretIdx: a.turretTarget,
+            });
           }
         }
         if (a.x < 0) { a.x = 0; }
@@ -1607,6 +1612,26 @@
 
     for (let i = bullets.length - 1; i >= 0; i--) {
       const b = bullets[i];
+      if (b.isPoliceBullet) {
+        b.x += b.vx;
+        b.y += b.vy;
+        if (b.turretIdx >= 0 && b.turretIdx < state.turretCount) {
+          const tp = turretPos(b.turretIdx);
+          if (Math.hypot(b.x - tp.x, b.y - tp.y) < 20) {
+            state.turretHP[b.turretIdx] = (state.turretHP[b.turretIdx] || 3) - 1;
+            if (state.turretHP[b.turretIdx] <= 0) {
+              state.turretHP.splice(b.turretIdx, 1);
+              state.turretCount--;
+            }
+            bullets.splice(i, 1);
+            continue;
+          }
+        }
+        if (b.x < -20 || b.x > W + 20 || b.y < -20 || b.y > H + 20) {
+          bullets.splice(i, 1);
+        }
+        continue;
+      }
       b.age++;
       if (b.target && b.target.alive) {
         const tx = b.target.x + b.target.w / 2;
